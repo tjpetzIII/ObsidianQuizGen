@@ -1,0 +1,21 @@
+{
+  "name": "obsidian-quiz",
+  "version": "1.0.0",
+  "description": "Summarizes recent LN-file changes from Personal-Vault using Claude",
+  "main": "dist/summarize.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/summarize.js",
+    "dev": "ts-node src/summarize.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.36.0",
+    "@octokit/rest": "^21.0.0",
+    "dotenv": "^17.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.0"
+  }
+}
