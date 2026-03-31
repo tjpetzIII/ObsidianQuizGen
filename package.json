@@ -9,7 +9,6 @@
     "dev": "ts-node src/summarize.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.36.0",
     "@octokit/rest": "^21.0.0",
     "dotenv": "^17.3.1"
   },

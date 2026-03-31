@@ -1,21 +1,15 @@
 import "dotenv/config";
-import Anthropic from "@anthropic-ai/sdk";
 import { Octokit } from "@octokit/rest";
+import { execFileSync } from "child_process";
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 if (!GITHUB_TOKEN) {
   console.error("Error: GITHUB_TOKEN environment variable is not set.");
   process.exit(1);
 }
-if (!ANTHROPIC_API_KEY) {
-  console.error("Error: ANTHROPIC_API_KEY environment variable is not set.");
-  process.exit(1);
-}
 
 const octokit = new Octokit({ auth: GITHUB_TOKEN });
-const anthropic = new Anthropic();
 
 const REPO_OWNER = "tjpetzIII";
 const REPO_NAME = "Personal-Vault";
@@ -101,21 +95,17 @@ function buildPrompt(changes: FileChange[]): string {
   ].join("\n");
 }
 
-async function summarizeWithClaude(prompt: string): Promise<string> {
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 4096,
-    system:
-      "You are a helpful assistant that summarizes changes to personal knowledge base notes. " +
-      "Provide clear, concise summaries focused on what knowledge was added or updated.",
-    messages: [{ role: "user", content: prompt }],
-  });
+function summarizeWithClaude(prompt: string): string {
+  const systemPrompt =
+    "You are a helpful assistant that summarizes changes to personal knowledge base notes. " +
+    "Provide clear, concise summaries focused on what knowledge was added or updated.";
+  const fullPrompt = `${systemPrompt}\n\n${prompt}`;
 
-  const textBlock = response.content.find((b) => b.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new Error("Claude returned no text content");
-  }
-  return textBlock.text;
+  return execFileSync("claude", ["--print"], {
+    input: fullPrompt,
+    encoding: "utf8",
+    stdio: ["pipe", "pipe", "inherit"],
+  });
 }
 
 async function main(): Promise<void> {
@@ -140,7 +130,7 @@ async function main(): Promise<void> {
 
   console.log("Generating summary with Claude...\n");
   const prompt = buildPrompt(changes);
-  const summary = await summarizeWithClaude(prompt);
+  const summary = summarizeWithClaude(prompt);
 
   console.log("=".repeat(60));
   console.log("SUMMARY OF RECENT LN FILE CHANGES");
