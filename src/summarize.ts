@@ -9,12 +9,22 @@ if (!GITHUB_TOKEN) {
   process.exit(1);
 }
 
-const octokit = new Octokit({ auth: GITHUB_TOKEN });
+const REPO_OWNER = process.env.REPO_OWNER as string;
+const REPO_NAME = process.env.REPO_NAME as string;
+const FILE_PREFIX = process.env.FILE_PREFIX ?? "LN";
+const HOURS_LOOKBACK = parseInt(process.env.HOURS_LOOKBACK ?? "24", 10);
 
-const REPO_OWNER = "tjpetzIII";
-const REPO_NAME = "Personal-Vault";
-const LN_FILE_PATTERN = /^LN/;
-const HOURS_LOOKBACK = 24;
+if (!REPO_OWNER) {
+  console.error("Error: REPO_OWNER environment variable is not set.");
+  process.exit(1);
+}
+if (!REPO_NAME) {
+  console.error("Error: REPO_NAME environment variable is not set.");
+  process.exit(1);
+}
+
+const octokit = new Octokit({ auth: GITHUB_TOKEN as string });
+const FILE_PATTERN = new RegExp(`^${FILE_PREFIX}`);
 
 interface FileChange {
   filename: string;
@@ -29,8 +39,8 @@ interface FileChange {
 
 async function getRecentCommits(since: Date): Promise<string[]> {
   const { data } = await octokit.rest.repos.listCommits({
-    owner: REPO_OWNER,
-    repo: REPO_NAME,
+    owner: REPO_OWNER as string,
+    repo: REPO_NAME as string,
     since: since.toISOString(),
     per_page: 100,
   });
@@ -52,7 +62,7 @@ async function getLNFileChanges(commitShas: string[]): Promise<FileChange[]> {
 
     for (const file of data.files ?? []) {
       const basename = file.filename.split("/").pop() ?? file.filename;
-      if (!LN_FILE_PATTERN.test(basename)) continue;
+      if (!FILE_PATTERN.test(basename)) continue;
 
       changes.push({
         filename: file.filename,
@@ -86,8 +96,8 @@ function buildPrompt(changes: FileChange[]): string {
   });
 
   return [
-    'The following changes were made to Obsidian vault notes with filenames starting with "LN"',
-    "(Learning Notes) in the past 24 hours. Please provide a concise, human-readable summary",
+    `The following changes were made to Obsidian vault notes with filenames starting with "${FILE_PREFIX}"`,
+    `in the past ${HOURS_LOOKBACK} hours. Please provide a concise, human-readable summary`,
     "of what was added, changed, or removed across these files. Focus on the actual content",
     "changes, not the technical git details.",
     "",
